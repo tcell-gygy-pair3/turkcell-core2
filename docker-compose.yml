@@ -1,0 +1,54 @@
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+  postgres:
+    image: postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=test
+    volumes:
+      - postgresql-volume:/var/lib/postgresql/data
+  config-server:
+    build: ./configserver
+    ports:
+      - "8079:8079"
+    networks:
+      - common
+  discovery-server:
+    build: ./discoveryserver
+    ports:
+      - "8888:8888"
+    networks:
+      - common
+  gateway-server:
+    build: ./gatewayserver
+    ports:
+      - "8080:8080"
+    restart: on-failure # her hata aldığında
+    # restart: unless-stopped # kullanıcı dışında konteyner durdu ise
+    # restart: always # kullanıcı dahil herhangi bir şekilde durdu ise.
+    depends_on:
+      - discovery-server
+      - config-server
+    environment:
+      - SPRING_CLOUD_CONFIG_PROFILE=prod
+      - CONFIGURL=http://config-server:8079
+    networks:
+      - common
+
+
+volumes:
+  postgresql-volume: #dosyadaki nickname'i
+    name: postgresql-volume2 #klasör ismi
+  mongodb-volume:
+    name: mongodb-volume2
+
+networks:
+  common:
+    driver: bridge
